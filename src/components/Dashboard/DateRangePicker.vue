@@ -8,18 +8,72 @@ const emit = defineEmits(['periodChange']);
 const startDate = ref(null);
 const endDate = ref(null);
 
+// Helper function to parse and adjust date
+const parseAndAdjustDate = (dateString) => {
+    if (!dateString) return null;
+
+    // First, try to parse the date string directly
+    const dateParts = dateString.split('/').map(Number);
+    
+    // Ensure we have year, month, day
+    if (dateParts.length === 3) {
+        // JavaScript months are 0-indexed, so subtract 1 from month
+        // But we want to preserve the exact day entered
+        const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        
+        // Validate date against min and max dates
+        const minDate = new Date('2024/12/01');
+        const maxDate = new Date('2025/02/19');
+        
+        if (date < minDate || date > maxDate) {
+            return null; // Return null if date is outside allowed range
+        }
+        
+        return date;
+    }
+
+    // Fallback to standard date parsing
+    const date = new Date(dateString);
+    
+    return date;
+};
+
 // Watch for date range changes
 const onDateRangeChange = (event) => {
     const inputs = event.target.closest('[date-rangepicker]').querySelectorAll('input');
-    const start = new Date(inputs[0].value);
-    const end = new Date(inputs[1].value);
+    
+    // Parse start and end dates
+    const start = parseAndAdjustDate(inputs[0].value);
+    const end = parseAndAdjustDate(inputs[1].value);
 
-    // Ensure date is set correctly without time
-    startDate.value = start.toISOString().split("T")[0]; // YYYY-MM-DD format
-    endDate.value = end.toISOString().split("T")[0];
+    // If either start or end is not selected, do nothing
+    if (!start || !end) {
+        // Reset dates to null if not both are selected
+        if (!start) startDate.value = null;
+        if (!end) endDate.value = null;
+        return;
+    }
 
-    // Update chart with new date range
-    emit('periodChange', { start: startDate.value, end: endDate.value });
+    // Ensure dates are in the correct order
+    const startDateValue = start <= end ? start : end;
+    const endDateValue = start <= end ? end : start;
+
+    // Adjust end date to include the full last day
+    endDateValue.setHours(23, 59, 59, 999);
+
+    // Format dates to YYYY-MM-DD for consistency
+    const formattedStart = startDateValue.toISOString().split('T')[0];
+    const formattedEnd = endDateValue.toISOString().split('T')[0];
+
+    // Update reactive variables
+    startDate.value = formattedStart;
+    endDate.value = formattedEnd;
+
+    // Emit the period change with the correct date range
+    emit('periodChange', { 
+        start: formattedStart, 
+        end: formattedEnd 
+    });
 };
 
 onMounted(() => {
@@ -28,6 +82,25 @@ onMounted(() => {
     if (dateRangePicker) {
         dateRangePicker.addEventListener('change', onDateRangeChange);
     }
+
+    // Set default date range to today and 6 days before today
+    const today = new Date('2025/02/19');
+    const sixDaysBefore = new Date(today);
+    sixDaysBefore.setDate(today.getDate() - 6);
+
+    // Format dates to YYYY-MM-DD
+    const formattedStart = sixDaysBefore.toISOString().split('T')[0];
+    const formattedEnd = today.toISOString().split('T')[0];
+
+    // Update reactive variables
+    startDate.value = formattedStart;
+    endDate.value = formattedEnd;
+
+    // Emit the period change with the default date range
+    emit('periodChange', { 
+        start: formattedStart, 
+        end: formattedEnd 
+    });
 });
 
 // Optional: Clean up chart and event listeners on unmount
@@ -53,7 +126,10 @@ onUnmounted(() => {
                         </div>
                         <input type="text" id="datepicker-range-start" v-model="startDate" @blur="onDateRangeChange"
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            placeholder="Start date (yyyy-MM-dd)" data-date-format="yyyy-MM-dd">
+                            placeholder="Start date (yyyy/MM/dd)" 
+                            data-date-format="yyyy/MM/dd"
+                            min="2024/12/01"
+                            max="2025/02/19">
                     </div>
 
                     <div class="mx-3">
@@ -70,7 +146,10 @@ onUnmounted(() => {
                         </div>
                         <input type="text" id="datepicker-range-end" v-model="endDate" @blur="onDateRangeChange"
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            placeholder="End date (yyyy-MM-dd)" data-date-format="yyyy-MM-dd">
+                            placeholder="End date (yyyy/MM/dd)" 
+                            data-date-format="yyyy/MM/dd"
+                            min="2024/12/01"
+                            max="2025/02/19">
                     </div>
                 </div>
             </div>

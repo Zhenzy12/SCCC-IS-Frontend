@@ -7,7 +7,6 @@ import TransactionHistoryTable from "../components/Dashboard/TransactionHistoryT
 import DateRangePicker from "../components/Dashboard/DateRangePicker.vue";
 
 // Reactive reference for the chart
-const selectedPeriod = ref('Last week');
 const dateRange = ref({ start: null, end: null });
 
 // Method to handle date range changes
