@@ -13,17 +13,14 @@ const onDateRangeChange = (event) => {
     const inputs = event.target.closest('[date-rangepicker]').querySelectorAll('input');
     const start = new Date(inputs[0].value);
     const end = new Date(inputs[1].value);
-    console.log("🚀 ~ onDateRangeChange ~ start:", start)
-    console.log("🚀 ~ onDateRangeChange ~ end:", end)
 
     // Ensure date is set correctly without time
     startDate.value = start.toISOString().split("T")[0]; // YYYY-MM-DD format
     endDate.value = end.toISOString().split("T")[0];
 
     // Update chart with new date range
-    emit('periodChange', { start, end });
+    emit('periodChange', { start: startDate.value, end: endDate.value });
 };
-
 
 onMounted(() => {
     // Add event listener to date range picker
@@ -59,6 +56,10 @@ onUnmounted(() => {
                             placeholder="Start date (yyyy-MM-dd)" data-date-format="yyyy-MM-dd">
                     </div>
 
+                    <div class="mx-3">
+                        <p>to</p>
+                    </div>
+
                     <div class="relative">
                         <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
                             <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
@@ -76,5 +77,5 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Optional: Add any additional dark mode specific styles if needed */
+
 </style>

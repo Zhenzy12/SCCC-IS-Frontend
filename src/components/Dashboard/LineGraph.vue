@@ -3,11 +3,26 @@ import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import ApexCharts from 'apexcharts';
 
 // Props to make the component configurable
+const props = defineProps({
+    selectedPeriod: {
+        type: String,
+        default: 'Last week'
+    },
+    dateRange: {
+        type: Object,
+        default: () => ({ start: null, end: null })
+    }
+});
+
 const emit = defineEmits(['periodChange']);
 
 // Reactive date range
 const startDate = ref(null);
 const endDate = ref(null);
+
+// Reference to chart container
+const lineChart = ref(null);
+let chart = null;
 
 // Dummy data generation function with date range support
 const generateDateRangeData = (start, end) => {
@@ -21,7 +36,9 @@ const generateDateRangeData = (start, end) => {
     }
 
     // Calculate the number of days between start and end dates
-    const diffTime = Math.abs(end - start);
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
     // Generate data based on the date range
@@ -30,14 +47,12 @@ const generateDateRangeData = (start, end) => {
 
     // Generate categories (dates)
     const categories = Array.from({ length: diffDays }, (_, i) => {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
 
         // Ensure proper formatting and no extra characters
         return `${currentDate.toLocaleString('en-US', { month: 'short' })} ${currentDate.getDate()}`;
     });
-
-
 
     return {
         borrowed,
@@ -118,66 +133,25 @@ const options = ref({
     },
 });
 
-// Reference for the chart container
-const lineChart = ref(null);
-
-// Chart instance
-let chart = null;
-
-// Update chart based on date range
+// Function to update chart
 const updateChart = (start = null, end = null) => {
-    let chartData;
+    if (!chart) return;
 
-    // Prioritize date range if available
-    if (start && end) {
-        chartData = generateDateRangeData(start, end);
-    } else {
-        // Fallback to default data
-        chartData = {
-            borrowed: [65, 72, 58, 80, 74, 69],
-            returned: [60, 68, 58, 78, 70, 65],
-            categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-        };
-    }
+    const { borrowed, returned, categories } = generateDateRangeData(start, end);
 
-    // Update series and categories
-    options.value.series = [
-        {
-            name: "Borrowed",
-            data: chartData.borrowed,
-            color: "#bf1029",
-        },
-        {
-            name: "Returned",
-            data: chartData.returned,
-            color: "#3f8f29",
-        }
-    ];
-    options.value.xaxis.categories = chartData.categories;
-
-    // Emit the date range change to parent
-    emit('periodChange', { start, end });
-
-    // Re-render chart if it exists
-    if (chart) {
-        chart.updateOptions(options.value);
-    }
+    chart.updateOptions({
+        series: [
+            { name: "Borrowed", data: borrowed },
+            { name: "Returned", data: returned }
+        ],
+        xaxis: { categories }
+    });
 };
 
 // Watch for date range changes
-const onDateRangeChange = (event) => {
-    const inputs = event.target.closest('[date-rangepicker]').querySelectorAll('input');
-    const start = new Date(inputs[0].value);
-    const end = new Date(inputs[1].value);
-
-    // Ensure date is set correctly without time
-    startDate.value = start.toISOString().split("T")[0]; // YYYY-MM-DD format
-    endDate.value = end.toISOString().split("T")[0];
-
-    // Update chart with new date range
-    updateChart(start, end);
-};
-
+watch(() => props.dateRange, (newRange) => {
+    updateChart(newRange.start, newRange.end);
+}, { deep: true });
 
 onMounted(() => {
     if (lineChart.value) {
@@ -203,6 +177,20 @@ onUnmounted(() => {
         dateRangePicker.removeEventListener('change', onDateRangeChange);
     }
 });
+
+// Watch for date range changes
+const onDateRangeChange = (event) => {
+    const inputs = event.target.closest('[date-rangepicker]').querySelectorAll('input');
+    const start = new Date(inputs[0].value);
+    const end = new Date(inputs[1].value);
+
+    // Ensure date is set correctly without time
+    startDate.value = start.toISOString().split("T")[0]; // YYYY-MM-DD format
+    endDate.value = end.toISOString().split("T")[0];
+
+    // Update chart with new date range
+    updateChart(start, end);
+};
 </script>
 
 <template>

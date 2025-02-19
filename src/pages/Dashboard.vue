@@ -8,11 +8,16 @@ import DateRangePicker from "../components/Dashboard/DateRangePicker.vue";
 
 // Reactive reference for the chart
 const selectedPeriod = ref('Last week');
+const dateRange = ref({ start: null, end: null });
+
+// Method to handle date range changes
+const handleDateRangeChange = (range) => {
+    dateRange.value = range;
+};
 
 onMounted(() => {
     initFlowbite();
 });
-
 </script>
 
 <template>
@@ -25,7 +30,11 @@ onMounted(() => {
             </div>
         </header>
 
-        <DateRangePicker class="" date-rangepicker/>
+        <DateRangePicker 
+            class="" 
+            date-rangepicker 
+            @periodChange="handleDateRangeChange" 
+        />
 
         <div class="flex gap-3 p-4 h-120">
             <!-- BAR GRAPH -->
@@ -43,6 +52,7 @@ onMounted(() => {
                 <div class="card w-full h-full bg-white rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6 flex justify-between mb-5 ">
                     <LineGraph 
                         :selectedPeriod="selectedPeriod"
+                        :dateRange="dateRange"
                         class="w-full "
                     />
                 </div>
@@ -57,5 +67,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Optional: Add any additional dark mode specific styles if needed */
+
 </style>
