@@ -3,13 +3,39 @@ import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import ApexCharts from 'apexcharts';
 
 // Props to make the component configurable
+const props = defineProps({
+  selectedPeriod: {
+    type: String,
+    default: 'Last week'
+  },
+  startDate: String,
+  endDate: String
+});
+
 const emit = defineEmits(['periodChange']);
 
+const startDate = computed({
+    get: () => props.startDate,
+    set: (value) => {
+        console.log("Emitting startDate update:", value);
+        emit('update:startDate', value);
+    }
+});
 
-// Dummy data generation function with date range support
+const endDate = computed({
+    get: () => props.endDate,
+    set: (value) => {
+        console.log("Emitting endDate update:", value);
+        emit('update:endDate', value);
+    }
+});
+
+// Function to generate data based on date range
 const generateDateRangeData = (start, end) => {
-    // If no dates are selected, use default last week data
+    console.log("Generating data for range:", start, "to", end);
+
     if (!start || !end) {
+        console.warn("No date range provided, using default data.");
         return {
             borrowed: [65, 72, 58, 80, 74, 69],
             returned: [60, 68, 58, 78, 70, 65],
@@ -17,203 +43,158 @@ const generateDateRangeData = (start, end) => {
         };
     }
 
-    // Calculate the number of days between start and end dates
-    const diffTime = Math.abs(end - start);
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate) || isNaN(endDate)) {
+        console.error("Invalid date values:", start, end);
+        return;
+    }
+
+    const diffTime = Math.abs(endDate - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-    // Generate data based on the date range
     const borrowed = Array.from({ length: diffDays }, () => Math.floor(Math.random() * 50));
     const returned = Array.from({ length: diffDays }, () => Math.floor(Math.random() * 50));
 
-    // Generate categories (dates)
     const categories = Array.from({ length: diffDays }, (_, i) => {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
-
-        // Ensure proper formatting and no extra characters
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
         return `${currentDate.toLocaleString('en-US', { month: 'short' })} ${currentDate.getDate()}`;
     });
 
+    console.log("Generated Data:", { borrowed, returned, categories });
 
-
-    return {
-        borrowed,
-        returned,
-        categories
-    };
+    return { borrowed, returned, categories };
 };
 
-// Reactive chart options
+// Chart configuration
 const options = ref({
     chart: {
         height: "100%",
         maxWidth: "90%",
         type: "area",
         fontFamily: "Inter, sans-serif",
-        dropShadow: {
-            enabled: false,
-        },
-        toolbar: {
-            show: true,
-        },
+        dropShadow: { enabled: false },
+        toolbar: { show: true },
     },
-    tooltip: {
-        enabled: true,
-        x: {
-            show: false,
-        },
-    },
-    dataLabels: {
-        enabled: false,
-    },
-    stroke: {
-        width: 6,
-        curve: 'smooth'
-    },
+    tooltip: { enabled: true, x: { show: false } },
+    dataLabels: { enabled: false },
+    stroke: { width: 6, curve: 'smooth' },
     grid: {
         show: false,
         strokeDashArray: 1,
-        padding: {
-            left: 2,
-            right: 2,
-            top: -26
-        },
+        padding: { left: 2, right: 2, top: -26 },
     },
     series: [
-        {
-            name: "Borrowed",
-            data: [65, 72, 58, 80, 74, 69],
-            color: "#bf1029",
-        },
-        {
-            name: "Returned",
-            data: [60, 68, 58, 78, 70, 65],
-            color: "#3f8f29",
-        },
+        { name: "Borrowed", data: [65, 72, 58, 80, 74, 69], color: "#bf1029" },
+        { name: "Returned", data: [60, 68, 58, 78, 70, 65], color: "#3f8f29" },
     ],
-    legend: {
-        show: false
-    },
+    legend: { show: false },
     xaxis: {
         categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         labels: {
             show: true,
             style: {
                 fontFamily: "Inter, sans-serif",
-                cssClass: 'text-xs font-normal fill-gray-500 dark:fill-gray-400'
+                cssClass: 'text-xs font-normal fill-gray-500 dark:fill-gray-200'
             }
         },
-        axisBorder: {
-            show: false,
-        },
-        axisTicks: {
-            show: false,
-        },
+        axisBorder: { show: false },
+        axisTicks: { show: false }
     },
-    yaxis: {
-        show: false,
-    },
+    yaxis: { show: false }
 });
 
-// Reference for the chart container
 const lineChart = ref(null);
-
-// Chart instance
 let chart = null;
 
-// Update chart based on date range
+// Function to update chart with new data
 const updateChart = (start = null, end = null) => {
-    let chartData;
-
-    // Prioritize date range if available
-    if (start && end) {
-        chartData = generateDateRangeData(start, end);
-    } else {
-        // Fallback to default data
-        chartData = {
-            borrowed: [65, 72, 58, 80, 74, 69],
-            returned: [60, 68, 58, 78, 70, 65],
-            categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-        };
+    console.log("Updating chart with dates:", start, end);
+    if (!chart) {
+        console.warn("Chart instance is not initialized yet.");
+        return;
     }
 
-    // Update series and categories
-    options.value.series = [
-        {
-            name: "Borrowed",
-            data: chartData.borrowed,
-            color: "#bf1029",
-        },
-        {
-            name: "Returned",
-            data: chartData.returned,
-            color: "#3f8f29",
-        }
-    ];
-    options.value.xaxis.categories = chartData.categories;
+    const data = generateDateRangeData(start, end);
+    if (!data) return;
 
-    // Emit the date range change to parent
-    emit('periodChange', { start, end });
+    console.log("Updating chart with new data:", data);
 
-    // Re-render chart if it exists
-    if (chart) {
-        chart.updateOptions(options.value);
-    }
+    chart.updateOptions({
+        series: [
+            { name: "Borrowed", data: data.borrowed },
+            { name: "Returned", data: data.returned }
+        ],
+        xaxis: { categories: data.categories }
+    });
 };
+
+// Function to handle date range change
+const onDateRangeChange = () => {
+    console.log("Dashboard date range changed:", startDate.value, endDate.value);
+    emit('update:startDate', startDate.value);
+    emit('update:endDate', endDate.value);
+};
+
+
+// Watch for period selection changes
+watch(() => props.selectedPeriod, (newPeriod) => {
+    console.log("Selected period changed:", newPeriod);
+    if (newPeriod === 'Last week') {
+        const today = new Date();
+        const lastWeek = new Date(today);
+        lastWeek.setDate(today.getDate() - 7);
+        updateChart(lastWeek.toISOString().split('T')[0], today.toISOString().split('T')[0]);
+    }
+}, { immediate: true });
 
 // Watch for date range changes
-const onDateRangeChange = (event) => {
-    const inputs = event.target.closest('[date-rangepicker]').querySelectorAll('input');
-    const start = new Date(inputs[0].value);
-    const end = new Date(inputs[1].value);
+watch(() => [props.startDate, props.endDate], ([newStart, newEnd]) => {
+    console.log("Watched props changed: startDate =", newStart, ", endDate =", newEnd);
+    
+    if (chart && newStart && newEnd) { // Ensure the chart exists
+        updateChart(newStart, newEnd);
+    }
+});
 
-    // Ensure date is set correctly without time
-    startDate.value = start.toISOString().split("T")[0]; // YYYY-MM-DD format
-    endDate.value = end.toISOString().split("T")[0];
-
-    // Update chart with new date range
-    updateChart(start, end);
-};
 
 
 onMounted(() => {
+    console.log("Component Mounted. Initializing chart...");
     if (lineChart.value) {
         chart = new ApexCharts(lineChart.value, options.value);
-        chart.render();
-    }
-
-    // Add event listener to date range picker
-    const dateRangePicker = document.getElementById('date-range-picker');
-    if (dateRangePicker) {
-        dateRangePicker.addEventListener('change', onDateRangeChange);
+        chart.render().then(() => {
+            console.log("Chart initialized successfully.");
+            updateChart(startDate.value, endDate.value); // ✅ Update after rendering
+        });
     }
 });
 
-// Optional: Clean up chart and event listeners on unmount
+
 onUnmounted(() => {
+    console.log("Component Unmounted. Destroying chart...");
     if (chart) {
         chart.destroy();
-    }
-
-    const dateRangePicker = document.getElementById('date-range-picker');
-    if (dateRangePicker) {
-        dateRangePicker.removeEventListener('change', onDateRangeChange);
     }
 });
 </script>
 
 <template>
-    <div class="">
-        <div class="grid grid-cols-3 ">
+    <div>
+        <div class="grid grid-cols-3">
             <div class="grid grid-cols-2 items-center text-start">
                 <div>
                     <h5 class="inline-flex items-center text-gray-500 dark:text-gray-400 leading-none font-normal mb-2">
-                        Borrowed</h5>
+                        Borrowed
+                    </h5>
                     <p class="text-gray-900 dark:text-white text-2xl leading-none font-bold">418</p>
                 </div>
                 <div>
                     <h5 class="inline-flex items-center text-gray-500 dark:text-gray-400 leading-none font-normal mb-2">
-                        Returned</h5>
+                        Returned
+                    </h5>
                     <p class="text-gray-900 dark:text-white text-2xl leading-none font-bold">399</p>
                 </div>
             </div>
