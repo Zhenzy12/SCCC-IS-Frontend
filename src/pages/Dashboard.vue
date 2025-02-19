@@ -4,6 +4,7 @@ import { initFlowbite } from 'flowbite'
 import LineGraph from '../components/Dashboard/LineGraph.vue';
 import BarGraph from "../components/Dashboard/BarGraph.vue";
 import TransactionHistoryTable from "../components/Dashboard/TransactionHistoryTable.vue";
+import DateRangePicker from "../components/Dashboard/DateRangePicker.vue";
 
 // Reactive reference for the chart
 const selectedPeriod = ref('Last week');
@@ -23,6 +24,8 @@ onMounted(() => {
                 </h1>
             </div>
         </header>
+
+        <DateRangePicker class="" date-rangepicker/>
 
         <div class="flex gap-3 p-4 h-120">
             <!-- BAR GRAPH -->
