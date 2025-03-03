@@ -54,10 +54,17 @@ const openDeleteModal = (transaction) => {
   console.log("🚀 ~ openDeleteModal ~ isDeleteModalOpen:", isDeleteModalOpen.value);
 };
 
+const getActiveOfficeIds = () => {
+  return officeDropDownItems.value
+    .filter((item) => item.isActive)
+    .map((item) => item.id);
+};
+
 const filteredTransactions = computed(() => {
   if (!transactionHistories.value.borrow_transactions) return [];
 
   const searchTerm = searchQuery.value.toLowerCase();
+  const activeOfficeIds = getActiveOfficeIds();
 
   return transactionHistories.value.borrow_transactions.filter((transaction) => {
     if (transaction.is_deleted) return false;
@@ -102,13 +109,16 @@ const filteredTransactions = computed(() => {
       return false;
     }) || false;
 
+    const officeMatch = activeOfficeIds.includes(transaction.borrowers?.office_id);
+
     return (
-      borrowerName.includes(searchTerm) ||
+      officeMatch &&
+      (borrowerName.includes(searchTerm) ||
       transactionId.includes(searchTerm) ||
       lender.includes(searchTerm) ||
       returnDate.includes(searchTerm) ||
       borrowDate.includes(searchTerm) ||
-      itemsMatch
+      itemsMatch)
     );
   });
 });
@@ -158,19 +168,8 @@ const openDropdownId = ref(null);
 
 const dropdownRefs = ref([]);
 
-const closeDropdown = () => {
-  openDropdownId.value = null;
-};
-
 onMounted(() => {
-  document.addEventListener("click", (event) => {
-    if (
-      openDropdownId.value !== null &&
-      !dropdownRefs.value[openDropdownId.value]?.contains(event.target)
-    ) {
-      closeDropdown();
-    }
-  });
+  document.addEventListener("click", handleClickOutside);
 
   axiosClient
     .get("/api/transaction_history", {
@@ -228,33 +227,40 @@ onMounted(() => {
       console.error("Error fetching equipment copies:", error);
     });
 
-   axiosClient
-      .get("/api/offices", {
-         headers: {
-            "x-api-key": API_KEY,
-         },
-      })
-      .then((response) => {
-         officeList.value = response.data;
-         console.log("Office Names:", officeList.value);
-      })
-      .catch((error) => {
-         console.error("Error fetching office names:", error);
-      });
-
-axiosClient
-   .get("/api/categories", {
+  axiosClient
+    .get("/api/offices", {
       headers: {
-         "x-api-key": API_KEY,
+        "x-api-key": API_KEY,
       },
-   })
-   .then((response) => {
+    })
+    .then((response) => {
+      officeList.value = response.data;
+      console.log("Office Names:", officeList.value);
+
+      // Update officeDropDownItems based on fetched office data
+      officeDropDownItems.value = officeList.value.map((office) => ({
+        id: office.id,
+        type: office.office_name,
+        isActive: true,
+      }));
+    })
+    .catch((error) => {
+      console.error("Error fetching office names:", error);
+    });
+
+  axiosClient
+    .get("/api/categories", {
+      headers: {
+        "x-api-key": API_KEY,
+      },
+    })
+    .then((response) => {
       categoryList.value = response.data;
       console.log("Category Names:", categoryList.value);
-   })
-   .catch((error) => {
+    })
+    .catch((error) => {
       console.error("Error fetching category names:", error);
-   });
+    });
 });
 
 const toggleDropdown = (transactionId) => {
@@ -265,13 +271,7 @@ const officeDropDownFilter = ref(false);
 const officeDropDownButtonRef = ref(null);
 const officeDropDownMenuRef = ref(null); // Reference to officeDropDown menu
 
-const officeDropDownItems = ref([
-  { id: 1, type: "911 Office", isActive: true },
-  { id: 2, type: "MITD Office", isActive: true },
-  { id: 3, type: "Library Office", isActive: true },
-  { id: 4, type: "Convention Office", isActive: true },
-  { id: 5, type: "Public Information Office", isActive: true },
-]);
+const officeDropDownItems = ref([]);
 
 const toggleofficeDropDown = () => {
   officeDropDownFilter.value = !officeDropDownFilter.value;
