@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed, watch } from "vue";
+import { onMounted, onUnmounted, ref, computed, watch, toRaw } from "vue";
 import axiosClient from "../../axios";
 import UpdateModal from "./Modal/UpdateTransactionModal.vue";
 import DeleteModal from "./Modal/DeleteTransactionModal.vue";
@@ -15,6 +15,7 @@ import { AkCross } from '@kalimahapps/vue-icons';
 import { BsQuestion } from '@kalimahapps/vue-icons';
 import { BsCheck } from '@kalimahapps/vue-icons';
 import { BsX } from '@kalimahapps/vue-icons';
+import { useDatabaseStore } from "../../stores/databaseStore";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 
@@ -33,7 +34,7 @@ const isUpdateModalOpen = ref(false);
 
 const openUpdateModal = (transaction) => {
   const lender =
-    transactionHistories.value.users?.find((user) => user.id === transaction.lender_id)
+  databaseStore.transactionHistories.value.users?.find((user) => user.id === transaction.lender_id)
       ?.firstName || "Unknown";
 
   selectedTransaction.value = {
@@ -49,7 +50,7 @@ const isDeleteModalOpen = ref(false);
 
 const openDeleteModal = (transaction) => {
   const lender =
-    transactionHistories.value.users?.find((user) => user.id === transaction.lender_id)
+  databaseStore.transactionHistories.value.users?.find((user) => user.id === transaction.lender_id)
       ?.firstName || "Unknown";
 
   selectedTransaction.value = {
@@ -68,18 +69,18 @@ const getActiveOfficeIds = () => {
 };
 
 const filteredTransactions = computed(() => {
-  if (!transactionHistories.value.borrow_transactions) return [];
+  if (!databaseStore.transactionHistory.value) return [];
 
   const searchTerm = searchQuery.value.toLowerCase();
   const activeOfficeIds = getActiveOfficeIds();
 
-  return transactionHistories.value.borrow_transactions.filter((transaction) => {
+  return databaseStore.transactionHistory.value.filter((transaction) => {
     if (transaction.is_deleted) return false;
 
     const borrowerName = transaction.borrowers?.borrowers_name?.toLowerCase() || "";
     const transactionId = transaction.id?.toString().toLowerCase() || "";
     const lender =
-      transactionHistories.value.users
+      databaseStore.transactionHistory.value.users
         ?.find((user) => user.id === transaction.lender_id)
         ?.firstName?.toLowerCase() || "";
     const returnDate = transaction.return_date
@@ -175,100 +176,17 @@ const openDropdownId = ref(null);
 
 const dropdownRefs = ref([]);
 
+// FETCH DATA
+let refreshInterval = null;
+const databaseStore = useDatabaseStore()
+
 onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
+  databaseStore.fetchData()
 
-  axiosClient
-    .get("/api/transaction_history", {
-      headers: {
-        "x-api-key": API_KEY,
-      },
-    })
-    .then((response) => {
-      transactionHistories.value = response.data;
-      console.log("Transaction histories:", transactionHistories.value);
-    })
-    .catch((error) => {
-      console.error("Error fetching transactions:", error);
-    });
-
-  axiosClient
-    .get("/api/office_supplies", {
-      headers: {
-        "x-api-key": API_KEY,
-      },
-    })
-    .then((response) => {
-      officeSupplies.value = response.data;
-      console.log("Office Supplies:", officeSupplies.value);
-    })
-    .catch((error) => {
-      console.error("Error fetching office supplies:", error);
-    });
-
-  axiosClient
-    .get("/api/office_equipments", {
-      headers: {
-        "x-api-key": API_KEY,
-      },
-    })
-    .then((response) => {
-      officeEquipments.value = response.data;
-      console.log("Office Equipments:", officeEquipments.value);
-    })
-    .catch((error) => {
-      console.error("Error fetching office equipments:", error);
-    });
-
-  axiosClient
-    .get("/api/equipment_copies", {
-      headers: {
-        "x-api-key": API_KEY,
-      },
-    })
-    .then((response) => {
-      equipmentCopies.value = response.data;
-      console.log("Equipment Copies:", equipmentCopies.value);
-    })
-    .catch((error) => {
-      console.error("Error fetching equipment copies:", error);
-    });
-
-  axiosClient
-    .get("/api/offices", {
-      headers: {
-        "x-api-key": API_KEY,
-      },
-    })
-    .then((response) => {
-      officeList.value = response.data;
-      console.log("Office Names:", officeList.value);
-
-      // Update officeDropDownItems based on fetched office data
-      officeDropDownItems.value = officeList.value.map((office) => ({
-        id: office.id,
-        type: office.office_name,
-        isActive: true,
-      }));
-    })
-    .catch((error) => {
-      console.error("Error fetching office names:", error);
-    });
-
-  axiosClient
-    .get("/api/categories", {
-      headers: {
-        "x-api-key": API_KEY,
-      },
-    })
-    .then((response) => {
-      categoryList.value = response.data;
-      console.log("Category Names:", categoryList.value);
-    })
-    .catch((error) => {
-      console.error("Error fetching category names:", error);
-    });
-});
+  refreshInterval = setInterval(() => {
+    databaseStore.fetchData()
+  }, 10000)
+})
 
 const toggleDropdown = (transactionId) => {
   openDropdownId.value = openDropdownId.value === transactionId ? null : transactionId;
@@ -326,6 +244,17 @@ onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
 });
 
+watch(databaseStore, () => {
+  transactionHistories = toRaw(databaseStore.transactionHistory);
+  officeSupplies.value = toRaw(databaseStore.officeSupplies.value);
+  officeEquipments.value = toRaw(databaseStore.officeEquipments.value);
+  equipmentCopies.value = toRaw(databaseStore.equipmentCopies.value);
+  officeList.value = toRaw(databaseStore.officeList.value);
+  categoryList.value = toRaw(databaseStore.categoryList.value);
+
+  console.log("Transaction history in databaseStore:", toRaw(databaseStore.transactionHistory));
+  console.log("Transaction history in transactionHistories:", transactionHistories);
+});
 
 </script>
 
@@ -459,7 +388,7 @@ onUnmounted(() => {
                   </td>
                   <td class="px-4 py-3">
                     {{
-                      transactionHistories.users?.find(
+                      databaseStore.transactionHistory.users?.find(
                         (user) => user.id === transaction.lender_id
                       )?.firstName
                     }}

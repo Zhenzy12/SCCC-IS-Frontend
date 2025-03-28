@@ -46,6 +46,7 @@ const OpenIncreaseSupplyQtyModal = () => {
 
 // fetching data
 const databaseStore = useDatabaseStore()
+let refreshInterval = null;
 
 onMounted(() => {
   databaseStore.fetchData()
@@ -109,8 +110,6 @@ const handleCheckboxChange = (id, event) => {
     item.isActive = !item.isActive;
   }
 };
-
-let refreshInterval = null;
 
 const handleClickOutside = (event) => {
   if (
