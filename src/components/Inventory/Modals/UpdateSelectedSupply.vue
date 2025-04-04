@@ -140,6 +140,118 @@ const confirmAction = (confirmed) => {
     confirmUpdateSupply()
   }
 }
+
+// error validation
+const errors = ref({
+  supplyName: [],
+  supplyDescription: [],
+  serialNumber: [],
+  selectedCategory: [],
+  supplyQuantity: [],
+  selectedImage: [],
+})
+
+const validateForm = () => {
+  Object.keys(errors.value).forEach(key => {
+    errors.value[key] = [];
+  });
+
+  let hasErrors = false;
+
+  if (!supplyName.value) {
+    errors.value.supplyName = ["Supply name is required"];
+    hasErrors = true;
+  }
+
+  if (!supplyDescription.value) {
+    errors.value.supplyDescription = ["Supply description is required"];
+    hasErrors = true;
+  }
+
+  if (!serialNumber.value) {
+    errors.value.serialNumber = ["Serial number is required"];
+    hasErrors = true;
+  }
+
+  if (!selectedCategory.value) {
+    errors.value.selectedCategory = ["Category is required"];
+    hasErrors = true;
+  }
+
+  if (!supplyQuantity.value) {
+    errors.value.supplyQuantity = ["Supply Quantity is required"];
+    hasErrors = true;
+  } else if (Number(supplyQuantity.value) < 1) {
+    errors.value.supplyQuantity = ["Supply Quantity must be greater than 0"];
+    hasErrors = true;
+  }
+
+  if (!selectedImage.value) {
+    errors.value.selectedImage = ["Image is required"];
+    hasErrors = true;
+  }
+
+  return !hasErrors;
+}
+
+// watch effect for validation
+watch(() => supplyName.value, (newValue) => {
+  if (!newValue) {
+    errors.value.supplyName = ["Supply name is required"];
+  } else {
+    errors.value.supplyName = [];
+  }
+});
+
+watch(() => supplyDescription.value, (newValue) => {
+  if (!newValue) {
+    errors.value.supplyDescription = ["Supply description is required"];
+  } else {
+    errors.value.supplyDescription = [];
+  }
+});
+
+watch(() => serialNumber.value, (newValue) => {
+  if (!newValue) {
+    errors.value.serialNumber = ["Serial number is required"];
+  } else {
+    errors.value.serialNumber = [];
+  }
+});
+
+watch(() => selectedCategory.value, (newValue) => {
+  if (!newValue) {
+    errors.value.selectedCategory = ["Category is required"];
+  } else {
+    errors.value.selectedCategory = [];
+  }
+});
+
+watch(() => supplyQuantity.value, (newValue) => {
+  if (!newValue) {
+    errors.value.supplyQuantity = ["Supply quantity is required"];
+  } else if (Number(newValue) < 1) {
+    errors.value.supplyQuantity = ["Supply Quantity must be greater than 0"];
+  } else {
+    errors.value.supplyQuantity = [];
+  }
+});
+
+watch(() => selectedImage.value, (newValue) => {
+  if (!newValue) {
+    errors.value.selectedImage = ["Image is required"];
+  } else {
+    errors.value.selectedImage = [];
+  }
+});
+
+const isClickedShowConfirmationModal = () => {
+  if (!validateForm()) {
+    return;
+  } else {
+    showConfirmationModal.value = true
+  }
+}
 </script>
 
 <template>
@@ -153,11 +265,22 @@ const confirmAction = (confirmed) => {
       </h3>
       <div class="flex flex-col text-start">
         <!-- IMAGE UPLOAD -->
-        <label class="block mt-4 mb-2 text font-medium text-gray-900 dark:text-gray-200">Equipment Image:</label>
+        <div class="flex flex-row mt-4 mb-2">
+          <label class="block text font-medium text-gray-900 dark:text-gray-200">Equipment Image:</label>
+
+          <p class="text-red-700 ml-2 font-semibold italic">{{ errors.selectedImage ? errors.selectedImage[0] :
+            '' }}</p>
+        </div>
+
         <input type="file" @change="handleImageUpload"
           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" />
         <!-- SUPPLY NAME -->
-        <label class="block mb-2 text font-medium text-gray-900 dark:text-gray-200">Supply Name:</label>
+        <div class="flex flex-row mt-4 mb-2">
+          <label class="block text font-medium text-gray-900 dark:text-gray-200">Supply Name:</label>
+          <p class="text-red-700 ml-2 font-semibold italic">{{ errors.supplyName ? errors.supplyName[0] :
+            '' }}</p>
+        </div>
+
         <div class="relative ml-2">
           <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
             <BsBoxFill />
@@ -167,8 +290,12 @@ const confirmAction = (confirmed) => {
             placeholder="Ex. Printer, Chair, Stairs">
         </div>
         <!-- SUPPLY DESCRIPTION -->
-        <label class="block mt-4 mb-2 text font-medium text-gray-900 dark:text-gray-200">Supply
-          Description:</label>
+        <div class="flex flex-row mt-4 mb-2">
+          <label class="block text font-medium text-gray-900 dark:text-gray-200">Supply
+            Description:</label>
+          <p class="text-red-700 ml-2 font-semibold italic">{{ errors.supplyDescription ? errors.supplyDescription[0] :
+            '' }}</p>
+        </div>
         <div class="relative ml-2">
           <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
             <FlFilledTextDescription />
@@ -178,7 +305,11 @@ const confirmAction = (confirmed) => {
             placeholder="Ex. Printer, Chair, Stairs"></textarea>
         </div>
         <!-- SUPPLY CATEGORY -->
-        <label class="block mt-4 mb-2 text font-medium text-gray-900 dark:text-gray-200">Supply Category:</label>
+        <div class="flex flex-row mt-4 mb-2">
+          <label class="block text font-medium text-gray-900 dark:text-gray-200">Supply Category:</label>
+          <p class="text-red-700 ml-2 font-semibold italic">{{ errors.selectedCategory ? errors.selectedCategory[0] :
+            '' }}</p>
+        </div>
 
         <div class="relative">
           <div class="absolute inset-y-0 start-2 flex items-center ps-3.5 pointer-events-none">
@@ -194,7 +325,11 @@ const confirmAction = (confirmed) => {
           </div>
         </div>
         <!-- SERIAL NUMBER -->
-        <label class="block mt-4 mb-2 text font-medium text-gray-900 dark:text-gray-200">Serial Number:</label>
+        <div class="flex flex-row mt-4 mb-2">
+          <label class="block text font-medium text-gray-900 dark:text-gray-200">Serial Number:</label>
+          <p class="text-red-700 ml-2 font-semibold italic">{{ errors.serialNumber ? errors.serialNumber[0] :
+            '' }}</p>
+        </div>
         <div class="relative ml-2">
           <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
             <BsBoxFill />
@@ -204,7 +339,11 @@ const confirmAction = (confirmed) => {
             placeholder="Ex. Printer, Chair, Stairs">
         </div>
         <!-- EQUIPMENT QUANTITY -->
-        <label class="block mt-4 mb-2 text font-medium text-gray-900 dark:text-gray-200">Supply Quantity:</label>
+        <div class="flex flex-row mt-4 mb-2">
+          <label class="block text font-medium text-gray-900 dark:text-gray-200">Supply Quantity:</label>
+          <p class="text-red-700 ml-2 font-semibold italic">{{ errors.supplyQuantity ? errors.supplyQuantity[0] :
+            '' }}</p>
+        </div>
         <div class="relative ml-2">
           <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
             <AnOutlinedNumber />
@@ -223,7 +362,7 @@ const confirmAction = (confirmed) => {
           </button>
         </div>
         <div class="w-1/2 px-3">
-          <button @click="showConfirmationModal = true"
+          <button @click="isClickedShowConfirmationModal()"
             class="block w-full rounded-md border bg-primary p-3 text-center text-base font-medium text-white transition bg-green-700 hover:border-green-600 hover:bg-green-600 hover:text-white dark:text-white dark:border-green-700 dark:hover:border-green-400">
             Update
           </button>

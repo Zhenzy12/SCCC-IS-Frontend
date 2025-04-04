@@ -153,6 +153,8 @@ watch(() => serialNumber.value, (newValue) => {
 watch(() => supplyQuantity.value, (newValue) => {
   if (!newValue) {
     errors.value.supplyQuantity = ["Supply quantity is required"];
+  } else if (Number(newValue) < 1) {
+    errors.value.supplyQuantity = ["Supply Quantity must be greater than 0"];
   } else {
     errors.value.supplyQuantity = [];
   }
@@ -161,6 +163,8 @@ watch(() => supplyQuantity.value, (newValue) => {
 watch(() => equipmentQuantity.value, (newValue) => {
   if (!newValue) {
     errors.value.equipmentQuantity = ["Equipment Quantity is required"];
+  } else if (Number(newValue) < 1) {
+    errors.value.equipmentQuantity = ["Equipment Quantity must be greater than 0"];
   } else {
     errors.value.equipmentQuantity = [];
   }
@@ -199,7 +203,10 @@ const validateEquipmentForm = () => {
   }
 
   if (!equipmentQuantity.value) {
-    errors.value.equipmentQuantity = ["Equipment quantity is required"];
+    errors.value.equipmentQuantity = ["Equipment Quantity is required"];
+    hasErrors = true;
+  } else if (Number(equipmentQuantity.value) < 1) {
+    errors.value.equipmentQuantity = ["Equipment Quantity must be greater than 0"];
     hasErrors = true;
   }
 
@@ -244,7 +251,10 @@ const validateSupplyForm = () => {
   }
 
   if (!supplyQuantity.value) {
-    errors.value.supplyQuantity = ["Supply quantity is required"];
+    errors.value.supplyQuantity = ["Supply Quantity is required"];
+    hasErrors = true;
+  } else if (Number(supplyQuantity.value) < 1) {
+    errors.value.supplyQuantity = ["Supply Quantity must be greater than 0"];
     hasErrors = true;
   }
 
@@ -523,7 +533,7 @@ const confirmSupplyAction = (confirmed) => {
               <div class="flex flex-row mt-4 mb-2">
                 <label class="block text font-medium text-gray-900 dark:text-gray-200">Equipment Image:</label>
                 <p class="text-red-700 ml-2 font-semibold italic">{{ errors.selectedImage ? errors.selectedImage[0] : ''
-                  }}</p>
+                }}</p>
               </div>
               <div class="relative ml-2">
                 <input type="file" @change="handleImageUpload" accept="image/*"
@@ -534,7 +544,7 @@ const confirmSupplyAction = (confirmed) => {
               <div class="flex flex-row">
                 <label class="block mb-2 text font-medium text-gray-900 dark:text-gray-200">Equipment Name:</label>
                 <p class="text-red-700 ml-2 font-semibold italic">{{ errors.equipmentName ? errors.equipmentName[0] : ''
-                  }}</p>
+                }}</p>
               </div>
               <div class="relative ml-2">
                 <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
@@ -607,7 +617,7 @@ const confirmSupplyAction = (confirmed) => {
               <div class="flex flex-row mt-4 mb-2">
                 <label class="block text font-medium text-gray-900 dark:text-gray-200">Supply Image:</label>
                 <p class="text-red-700 ml-2 font-semibold italic">{{ errors.selectedImage ? errors.selectedImage[0] : ''
-                  }}</p>
+                }}</p>
               </div>
 
               <div class="relative ml-2">
@@ -666,7 +676,7 @@ const confirmSupplyAction = (confirmed) => {
               <div class="flex flex-row mt-4 mb-2">
                 <label class="block text font-medium text-gray-900 dark:text-gray-200">Supply Number:</label>
                 <p class="text-red-700 ml-2 font-semibold italic">{{ errors.serialNumber ? errors.serialNumber[0] : ''
-                  }}</p>
+                }}</p>
               </div>
               <div class="relative ml-2">
                 <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
@@ -695,7 +705,8 @@ const confirmSupplyAction = (confirmed) => {
 
           <div class="flex flex-wrap ml-1 px-5 sm:px-20 md:px-45 lg:px-55 xl:px-60 2xl:px-70  mt-6">
             <div class="w-full pl-1">
-              <button v-if="selectedBreadCrumbCategory === 'equipment'" @click="isClickedShowEquipmentConfirmationModal()"
+              <button v-if="selectedBreadCrumbCategory === 'equipment'"
+                @click="isClickedShowEquipmentConfirmationModal()"
                 class="block w-full rounded-md border p-2 text-center text-base font-medium text-white transition bg-emerald-700  border-emerald-600 hover:border-emerald-500 hover:bg-emerald-600 hover:text-white dark:text-white">
                 Add Equipment
               </button>

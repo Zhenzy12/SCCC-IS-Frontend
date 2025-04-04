@@ -131,41 +131,40 @@ const errors = ref({
 })
 
 const validateForm = () => {
-    Object.keys(errors.value).forEach(key => {
-        errors.value[key] = [];
-    });
+  Object.keys(errors.value).forEach(key => {
+    errors.value[key] = [];
+  });
 
-    let hasErrors = false;
+  let hasErrors = false;
 
-    if (!copyQuantity.value) {
-        errors.value.copyQuantity = ["Copy Quantity is required"];
-        hasErrors = true;
-    } else if (Number(copyQuantity.value) <= 0) {
-        errors.value.copyQuantity = ["Copy Quantity must be greater than 0"];
-        hasErrors = true;
-    }
+  if (!copyQuantity.value) {
+    errors.value.copyQuantity = ["Copy Quantity is required"];
+    hasErrors = true;
+  } else if (Number(copyQuantity.value) < 1) {
+    errors.value.copyQuantity = ["Copy Quantity must be greater than 0"];
+    hasErrors = true;
+  }
 
-    return !hasErrors;
+  return !hasErrors;
 }
 
 // watch effect for validation
-// watch effect for validation
 watch(() => copyQuantity.value, (newValue) => {
-    if (!newValue) {
-        errors.value.copyQuantity = ["Copy Quantity is required"];
-    } else if (Number(newValue) <= 0) {
-        errors.value.copyQuantity = ["Copy Quantity must be greater than 0"];
-    } else {
-        errors.value.copyQuantity = [];
-    }
+  if (!newValue) {
+    errors.value.copyQuantity = ["Copy Quantity is required"];
+  } else if (Number(newValue) < 1) {
+    errors.value.copyQuantity = ["Copy Quantity must be greater than 0"];
+  } else {
+    errors.value.copyQuantity = [];
+  }
 });
 
 const isClickedShowConfirmationModal = () => {
-    if (!validateForm()) {
-        return;
-    } else {
-        showConfirmationModal.value = true
-    }
+  if (!validateForm()) {
+    return;
+  } else {
+    showConfirmationModal.value = true
+  }
 }
 
 </script>
@@ -187,16 +186,16 @@ const isClickedShowConfirmationModal = () => {
       <div class="text-start">
         <div class="flex flex-row mt-4 mb-2">
           <label class="block text font-medium text-gray-900 dark:text-gray-200">
-          Copy Quantity to be Added:
-        </label>
-        <p class="text-red-700 ml-2 font-semibold italic">{{ errors.copyQuantity?.length ? errors.copyQuantity[0] : '' }}</p>
+            Copy Quantity to be Added:
+          </label>
+          <p class="text-red-700 ml-2 font-semibold italic">{{ errors.copyQuantity?.length ? errors.copyQuantity[0] : ''
+          }}</p>
         </div>
         <div class="relative ml-2">
           <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
             <AnOutlinedNumber />
           </div>
-          <input type="number" 
-          min="1" v-model="copyQuantity" placeholder="Enter quantity..."
+          <input type="number" min="1" v-model="copyQuantity" placeholder="Enter quantity..."
             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
         </div>
       </div>
@@ -227,11 +226,7 @@ const isClickedShowConfirmationModal = () => {
     <!-- QR Codes Display (Separate Modal) -->
     <div v-else
       class="w-full max-w-[60vw] bg-white rounded-[20px] p-8 dark:bg-gray-950 border border-4 dark:border-white">
-      <QRCodeDisplay 
-        :qr-codes="generatedQRCodes" 
-        :on-print="handlePrint" 
-        :on-close="closeQRDisplay" 
-      />
+      <QRCodeDisplay :qr-codes="generatedQRCodes" :on-print="handlePrint" :on-close="closeQRDisplay" />
     </div>
   </div>
 </template>
