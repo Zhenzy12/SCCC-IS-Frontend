@@ -21,6 +21,8 @@ const selectedTransaction = ref(null);
 
 const isUpdateModalOpen = ref(false);
 
+const officeDropDownItems = ref([]);
+
 // FETCH DATA FROM PROPS
 const props = defineProps({
   transactionItems: Array,
@@ -73,9 +75,14 @@ const openDeleteModal = (transaction) => {
 };
 
 const getActiveOfficeIds = () => {
-  return officeDropDownItems.value
+  const activeOffices = officeDropDownItems.value
     .filter((item) => item.isActive)
     .map((item) => item.id);
+
+  // If no offices are selected, return all office IDs
+  return activeOffices.length === 0
+    ? officeDropDownItems.value.map(item => item.id)
+    : activeOffices;
 };
 
 const filteredTransactions = computed(() => {
@@ -83,90 +90,49 @@ const filteredTransactions = computed(() => {
 
   const startDate = new Date(props.selectedDateRange.start);
   const endDate = new Date(props.selectedDateRange.end);
-  
-  // ✅ Extend end date to include the full day (23:59:59)
   endDate.setHours(23, 59, 59, 999);
 
-  return props.transactionHistory.filter(transaction => {
+  const activeOfficeIds = getActiveOfficeIds();
+
+  const filtered = props.transactionHistory.filter(transaction => {
     const borrowDate = new Date(transaction.borrow_date);
 
-    // ✅ Ensure borrow_date is within the full range, including the same day
+    // Date range check
     if (borrowDate < startDate || borrowDate > endDate) {
       return false;
     }
 
-    // 🔍 Keep existing filters (deletion check, search query, item check, etc.)
+    // Exclude deleted transactions
     if (transaction.is_deleted) return false;
 
-    const searchTerm = searchQuery.value.toLowerCase();
-    const activeOfficeIds = getActiveOfficeIds();
-    const borrowerName =
-      props.borrowers
-        ?.find((borrower) => borrower.id === transaction.borrower_id)
-        ?.borrowers_name?.toLowerCase() || "";
-    const transactionId = transaction.id?.toString().toLowerCase() || "";
-    const lender =
-      props.users
-        ?.find((user) => user.id === transaction.lender_id)
-        ?.firstName?.toLowerCase() || "";
-    const returnDate = transaction.return_date
-      ? transaction.return_date.toLowerCase()
-      : "";
-    const borrowDateStr = transaction.borrow_date
-      ? transaction.borrow_date.toLowerCase()
-      : "";
+    // Get borrower's office ID
+    const borrower = props.borrowers?.find(
+      borrower => borrower.id === transaction.borrower_id
+    );
+    const borrowerOfficeId = borrower?.office_id;
 
-    // Fetch transaction items
-    const selectedTransactionItems = props.transactionItems?.filter(item => item.transaction_id === transaction.id) || [];
-    if (!selectedTransactionItems.length) return false;
-
-    const itemsMatch = selectedTransactionItems.some(item => {
-      if (item.item_type === 'Office Supply') {
-        const supplyName = props.officeSupplies.find(
-          (supply) => Number(supply.id) === Number(item.item_copy_id)
-        )?.supply_name?.toLowerCase() || "";
-        return supplyName.includes(searchTerm);
-      } else if (item.item_type === 'Equipment Copy') {
-        const equipmentName = props.officeEquipments.find(
-          (equipment) =>
-            Number(equipment.id) ===
-            Number(
-              props.equipmentCopies.find(
-                (equipment_copy) =>
-                  Number(equipment_copy.id) === Number(item.item_copy_id)
-              )?.item_id
-            )
-        )?.equipment_name?.toLowerCase() || "";
-
-        const equipmentId = props.equipmentCopies.find(
-          (equipment_copy) => Number(equipment_copy.id) === Number(item.item_copy_id)
-        )?.item_id?.toString()?.toLowerCase() || "";
-
-        return equipmentName.includes(searchTerm) || equipmentId.includes(searchTerm);
-      }
+    // Check if the transaction's office is in the active offices list
+    if (!activeOfficeIds.includes(borrowerOfficeId)) {
       return false;
-    }) || false;
+    }
 
-    const borrowerOfficeId =
-      props.borrowers
-        ?.find((borrower) => borrower.id === transaction.borrower_id)
-        ?.office_id || "";
-
-    const officeMatch =
-      props.officeList
-        ?.find((office) => office.id === borrowerOfficeId)
-        ?.office_name?.toLowerCase() || "";
+    // Search query filtering
+    const searchTerm = searchQuery.value.toLowerCase();
+    const borrowerName = borrower?.borrowers_name?.toLowerCase() || "";
+    const transactionId = transaction.id?.toString().toLowerCase() || "";
+    const lender = props.users?.find(
+      user => user.id === transaction.lender_id
+    )?.firstName?.toLowerCase() || "";
 
     return (
-      officeMatch &&
-      (borrowerName.includes(searchTerm) ||
-        transactionId.includes(searchTerm) ||
-        lender.includes(searchTerm) ||
-        returnDate.includes(searchTerm) ||
-        borrowDateStr.includes(searchTerm) ||
-        itemsMatch)
+      borrowerName.includes(searchTerm) ||
+      transactionId.includes(searchTerm) ||
+      lender.includes(searchTerm)
     );
   });
+
+  // Sort by borrow date in descending order (newer first)
+  return filtered.sort((a, b) => new Date(b.borrow_date) - new Date(a.borrow_date));
 });
 
 // Pagination
@@ -218,9 +184,9 @@ watch(() => props.officeList, () => {
   officeDropDownItems.value = props.officeList.map((office) => ({
     id: office.id,
     type: office.office_name,
-    isActive: true,
+    isActive: false,  // Initialize as unchecked
   }));
-});
+}, { immediate: true });
 
 const toggleDropdown = (transactionId) => {
   openDropdownId.value = openDropdownId.value === transactionId ? null : transactionId;
@@ -230,7 +196,7 @@ const officeDropDownFilter = ref(false);
 const officeDropDownButtonRef = ref(null);
 const officeDropDownMenuRef = ref(null); // Reference to officeDropDown menu
 
-const officeDropDownItems = ref([]);
+
 
 const toggleofficeDropDown = () => {
   officeDropDownFilter.value = !officeDropDownFilter.value;
@@ -361,7 +327,8 @@ const OpenCreateTransactionModal = () => {
                                 'top-full visible': officeDropDownFilter,
                                 'top-[110%] invisible': !officeDropDownFilter,
                               }">
-                              <label class="flex items-center cursor-pointer select-none text-dark dark:text-white mb-2  "
+                              <label
+                                class="flex items-center cursor-pointer select-none text-dark dark:text-white mb-2  "
                                 v-for="item in officeDropDownItems" :key="item.id">
                                 <div class="relative">
                                   <input type="checkbox" class="sr-only" :checked="item.isActive"
